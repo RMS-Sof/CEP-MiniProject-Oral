@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEP / Mini-Project Viva — Grading Pipeline</title>
+<style>
+:root{
+  --ink:#1B2A4A;
+  --parchment:#F5F0E6;
+  --paper:#FBF8F2;
+  --red-pen:#8A1F1F;
+  --gold:#A6813C;
+  --line:#C9BFA8;
+  --muted:#6b6455;
+  --serif:'Iowan Old Style','Palatino Linotype',Georgia,'Times New Roman',serif;
+  --mono:'Courier New',Courier,monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--parchment);
+  background-image:
+    repeating-linear-gradient(var(--parchment) 0 27px, rgba(0,0,0,0.035) 27px 28px);
+  font-family:var(--serif); color:var(--ink);
+  display:flex; align-items:flex-start; justify-content:center; padding:32px 16px;
+}
+.sheet{
+  width:100%; max-width:760px; background:var(--paper);
+  border:1px solid var(--line); box-shadow:0 2px 0 var(--line), 0 18px 40px rgba(27,42,74,0.12);
+  padding:36px 40px 30px; position:relative;
+}
+.sheet::before{
+  content:''; position:absolute; left:56px; top:0; bottom:0; width:1px; background:rgba(138,31,31,0.18);
+}
+header.masthead{
+  text-align:center; border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:26px;
+}
+header.masthead .eyebrow{
+  font-family:var(--mono); letter-spacing:.18em; font-size:11px; color:var(--gold); text-transform:uppercase;
+}
+header.masthead h1{
+  margin:6px 0 4px; font-size:26px; font-weight:600; letter-spacing:.01em;
+}
+header.masthead .sub{ font-size:13px; color:var(--muted); font-style:italic; }
+
+/* ---- Login screen ---- */
+.field{ margin-bottom:18px; }
+.field label{ display:block; font-family:var(--mono); font-size:12px; letter-spacing:.06em; color:var(--muted); margin-bottom:6px; text-transform:uppercase;}
+.field input{
+  width:100%; padding:10px 12px; font-family:var(--serif); font-size:16px; color:var(--ink);
+  background:transparent; border:none; border-bottom:1.5px solid var(--line); outline:none;
+}
+.field input:focus{ border-bottom-color:var(--red-pen); }
+.btn{
+  font-family:var(--mono); font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  background:var(--ink); color:var(--paper); border:none; padding:12px 22px; cursor:pointer;
+  transition:background .15s ease; text-align:center;
+}
+.btn:hover{ background:var(--red-pen); }
+.btn:disabled{ background:#b9b3a2; cursor:not-allowed; }
+.btn.ghost{ background:transparent; color:var(--ink); border:1.5px solid var(--ink); }
+.btn.ghost:hover{ background:var(--ink); color:var(--paper); }
+.row{ display:flex; gap:14px; }
+.row>*{ flex:1; }
+
+/* ---- Quiz screen ---- */
+.progress{
+  display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px;
+  font-family:var(--mono); font-size:12px; color:var(--muted);
+}
+.progress .pips{ display:flex; gap:6px; }
+.progress .pip{ width:9px; height:9px; border-radius:50%; border:1.5px solid var(--line); }
+.progress .pip.done{ background:var(--red-pen); border-color:var(--red-pen); }
+.progress .pip.current{ border-color:var(--ink); }
+
+.topic-tag{
+  display:inline-block; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--gold); border:1px solid var(--gold); padding:3px 9px; margin-bottom:12px;
+}
+.qmarks{ float:right; font-family:var(--mono); font-size:12px; color:var(--red-pen); border:1px solid var(--red-pen); padding:2px 8px;}
+.qtext{ font-size:19px; line-height:1.55; margin:6px 0 22px; clear:both;}
+
+.mic-row{ display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+.mic-btn{
+  width:56px; height:56px; border-radius:50%; border:2px solid var(--ink); background:var(--paper);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:.15s;
+}
+.mic-btn svg{ width:22px; height:22px; fill:var(--ink); }
+.mic-btn.listening{
+  background:var(--red-pen); border-color:var(--red-pen);
+  animation:pulse 1.15s ease-in-out infinite;
+}
+.mic-btn.listening svg{ fill:var(--paper); }
+@keyframes pulse{
+  0%{ box-shadow:0 0 0 0 rgba(138,31,31,0.45); }
+  70%{ box-shadow:0 0 0 16px rgba(138,31,31,0); }
+  100%{ box-shadow:0 0 0 0 rgba(138,31,31,0); }
+}
+.mic-status{ font-family:var(--mono); font-size:12px; color:var(--muted); }
+.mic-status.live{ color:var(--red-pen); }
+
+.transcript-box{
+  min-height:96px; border:1px solid var(--line); background:repeating-linear-gradient(var(--paper) 0 25px, rgba(0,0,0,0.04) 25px 26px);
+  padding:12px 14px; font-size:15px; line-height:26px; color:var(--ink); margin-bottom:8px; white-space:pre-wrap;
+}
+.transcript-box.empty{ color:var(--muted); font-style:italic; }
+.transcript-box .cursor{ display:inline-block; width:2px; height:16px; background:var(--red-pen); vertical-align:-3px; animation:blink 1s step-end infinite; }
+@keyframes blink{ 50%{ opacity:0; } }
+.edit-hint{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:22px; }
+
+.actions{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+.fallback-note{ font-family:var(--mono); font-size:11px; color:var(--red-pen); margin-top:6px; }
+
+/* ---- Result screen ---- */
+.score-hero{ text-align:center; padding:14px 0 24px; border-bottom:1px dashed var(--line); margin-bottom:20px;}
+.score-hero .big{ font-family:var(--mono); font-size:52px; color:var(--red-pen); font-weight:700; }
+.score-hero .of{ font-family:var(--mono); font-size:20px; color:var(--muted); }
+.score-hero .grade{ font-size:14px; color:var(--muted); margin-top:6px; font-style:italic;}
+table.breakdown{ width:100%; border-collapse:collapse; font-size:14px; }
+table.breakdown th{ text-align:left; font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--muted); border-bottom:1.5px solid var(--ink); padding:6px 4px; }
+table.breakdown td{ border-bottom:1px solid var(--line); padding:8px 4px; vertical-align:top; }
+table.breakdown td.mark{ font-family:var(--mono); color:var(--red-pen); text-align:right; white-space:nowrap; }
+.hidden{ display:none !important; }
+footer.note{ margin-top:22px; font-family:var(--mono); font-size:10.5px; color:var(--muted); line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="eyebrow">NBNSTIC · Department of Information Technology</div>
+    <h1>CEP / Mini-Project Viva Voce</h1>
+    <div class="sub">Designed by Prof. Rahul M. Samant | HOD-IT, NBNSTIC.</div>
+
+  <!-- LOGIN -->
+  <section id="screen-login">
+    <div class="field">
+      <label for="in-name">Student Name</label>
+      <input id="in-name" type="text" placeholder="e.g. Shashank Samant" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="in-prn">PRN</label>
+      <input id="in-prn" type="text" placeholder="" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="in-mic">Microphone Check</label>
+      <div style="font-size:13px;color:var(--muted)">Chrome or Edge recommended. You will be asked to grant microphone permission on the first question.</div>
+    </div>
+    <button class="btn" id="btn-start" style="width:100%">Begin Assessment</button>
+    <div id="login-error" class="fallback-note hidden"></div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="screen-quiz" class="hidden">
+    <div class="progress">
+      <span id="progress-label">Question 1 of 5</span>
+      <span class="pips" id="progress-pips"></span>
+    </div>
+    <span class="qmarks">5 marks</span>
+    <div class="topic-tag" id="q-topic">Topic</div>
+    <div class="qtext" id="q-text">Question text</div>
+
+    <div class="mic-row">
+      <button class="mic-btn" id="btn-mic" aria-label="Start recording">
+        <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a1 1 0 0 0-2 0 3 3 0 0 1-6 0 1 1 0 0 0-2 0 5 5 0 0 0 4 4.9V18H9a1 1 0 0 0 0 2h6a1 1 0 0 0 0-2h-2v-2.1A5 5 0 0 0 17 11z"/></svg>
+      </button>
+      <span class="mic-status" id="mic-status">Tap to record your answer</span>
+    </div>
+
+    <div class="transcript-box empty" id="transcript" contenteditable="false">Your spoken answer will appear here…</div>
+    <div class="edit-hint">You may click into the box to correct mis-heard words before pressing Next.</div>
+
+    <div class="actions">
+      <span class="fallback-note hidden" id="no-speech-note">Speech recognition isn't supported in this browser — type your answer above instead.</span>
+      <span></span>
+      <button class="btn" id="btn-next" disabled>Next →</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="screen-result" class="hidden">
+    <div class="score-hero">
+      <div><span class="big" id="score-big">0</span><span class="of"> / 25</span></div>
+      <div class="grade" id="score-remark"></div>
+    </div>
+    <table class="breakdown">
+      <thead><tr><th>#</th><th>Topic</th><th>Semantic</th><th>Keyword</th><th>Marks</th></tr></thead>
+      <tbody id="breakdown-body"></tbody>
+    </table>
+    <footer class="note">
+      Name: <span id="res-name"></span> · PRN: <span id="res-prn"></span><br>
+      Hybrid score = 0.6 × semantic similarity (TF-IDF cosine) + 0.4 × keyword coverage, scaled to 5 marks per question, rounded to nearest 0.5.
+    </footer>
+  </section>
+
+</div>
+
+<script>
+/* ============================= QUESTION BANK ============================= */
+/* 20 questions across the 11 CEP/Mini-Project topics, 5 marks each.
+   5 questions are sampled per session (topic-ordered) => total 25 marks,
+   reconciling the "20-question bank" with a "score out of 25" session. */
+const BANK = [
+ {topic:"Project Title", q:"What should a good mini-project or CEP title communicate, and why is precision important?",
+  keywords:["scope","problem","technology","concise","clarity"],
+  ref:"A good title should precisely state the problem domain and the core technology or approach used, staying concise so it clearly communicates scope without ambiguity."},
+ {topic:"Project Title", q:"How does the title differ from the project's purpose statement?",
+  keywords:["title","summary","purpose","detail","short"],
+  ref:"The title is a short label identifying the project, while the purpose statement explains in detail why the project is being undertaken and what it aims to achieve."},
+
+ {topic:"Motivation", q:"What is meant by 'motivation' in a project report, and what should it establish?",
+  keywords:["problem","need","gap","real-world","justify"],
+  ref:"Motivation explains the real-world problem or gap that justifies the project, establishing why the work is needed and worth pursuing."},
+ {topic:"Motivation", q:"How can a team demonstrate genuine motivation rather than a generic justification?",
+  keywords:["evidence","survey","statistics","observation","stakeholder"],
+  ref:"Genuine motivation is shown through evidence such as surveys, statistics, or direct stakeholder observations that reveal an unmet need rather than vague generic claims."},
+
+ {topic:"Purpose and Objectives", q:"Explain the difference between a project's purpose and its objectives.",
+  keywords:["purpose","goal","objectives","measurable","steps"],
+  ref:"Purpose is the overall goal the project aims to fulfil, while objectives are specific, measurable steps or outcomes that collectively achieve that purpose."},
+ {topic:"Purpose and Objectives", q:"What makes a project objective 'SMART'?",
+  keywords:["specific","measurable","achievable","relevant","time-bound"],
+  ref:"A SMART objective is Specific, Measurable, Achievable, Relevant, and Time-bound, ensuring progress can be tracked and evaluated objectively."},
+
+ {topic:"Technology Used", q:"What criteria should guide the choice of technology stack for a mini-project?",
+  keywords:["compatibility","scalability","cost","community support","learning curve"],
+  ref:"Technology choice should consider compatibility with requirements, scalability, cost, availability of community support, and the team's learning curve."},
+ {topic:"Technology Used", q:"Why is it important to justify technology choices in the report rather than just listing them?",
+  keywords:["justification","alternatives","trade-off","suitability","reasoning"],
+  ref:"Justifying choices shows the team evaluated alternatives and trade-offs, demonstrating that the selected technology is genuinely suited to the problem rather than arbitrary."},
+
+ {topic:"Software and Hardware Requirements", q:"What is the distinction between functional software requirements and non-functional requirements?",
+  keywords:["functional","non-functional","performance","features","constraints"],
+  ref:"Functional requirements describe specific features the system must perform, while non-functional requirements describe quality attributes such as performance, security, and usability constraints."},
+ {topic:"Software and Hardware Requirements", q:"Why must minimum hardware specifications be stated explicitly in a project report?",
+  keywords:["deployment","compatibility","performance","reproducibility","minimum spec"],
+  ref:"Explicit hardware specifications ensure the system's performance is reproducible and help others verify deployment compatibility before replicating or evaluating the work."},
+
+ {topic:"Challenges Faced and Workaround", q:"What is the value of documenting challenges faced, rather than only the final solution?",
+  keywords:["transparency","learning","debugging","process","evaluation"],
+  ref:"Documenting challenges shows transparency about the development process, demonstrates problem-solving skill, and helps evaluators and future teams learn from the debugging journey."},
+ {topic:"Challenges Faced and Workaround", q:"Give an example of a common technical challenge in mini-projects and a typical workaround.",
+  keywords:["integration","compatibility","library","alternative","testing"],
+  ref:"A common challenge is library or API incompatibility; a typical workaround is switching to an alternative library or writing an adapter layer after isolating the issue through testing."},
+
+ {topic:"Proposed Solutions", q:"What should a well-framed 'proposed solution' section clearly convey?",
+  keywords:["approach","architecture","how","addresses problem","method"],
+  ref:"It should clearly convey the chosen approach or architecture and explain how that method directly addresses the problem identified in the motivation."},
+ {topic:"Proposed Solutions", q:"How does a proposed solution differ from the system's logical design?",
+  keywords:["solution","concept","design","implementation detail","structure"],
+  ref:"The proposed solution describes the overall concept or strategy at a high level, whereas the logical design details the internal structure and data flow needed to implement it."},
+
+ {topic:"Novelty", q:"How is novelty typically demonstrated in an academic mini-project?",
+  keywords:["comparison","existing work","improvement","unique","contribution"],
+  ref:"Novelty is demonstrated by comparing the work against existing solutions and highlighting a unique contribution, improvement, or combination not previously offered."},
+ {topic:"Novelty", q:"Why can incremental novelty still be acceptable at the mini-project level?",
+  keywords:["scope","academic level","incremental","feasible","learning outcome"],
+  ref:"At the mini-project level, incremental novelty is acceptable because the scope and timeframe are limited, and the primary learning outcome is applying concepts meaningfully rather than achieving state-of-the-art research."},
+
+ {topic:"Logical Design", q:"What role does logical design play before implementation begins?",
+  keywords:["structure","modules","data flow","blueprint","plan"],
+  ref:"Logical design acts as a blueprint that defines modules, their interactions, and data flow, guiding implementation before any code is written."},
+ {topic:"Feasibility Study", q:"What are the three common dimensions evaluated in a feasibility study?",
+  keywords:["technical","economic","operational","feasibility","evaluation"],
+  ref:"A feasibility study commonly evaluates technical feasibility, economic feasibility, and operational feasibility to confirm the project can realistically be completed."},
+
+ {topic:"Block Diagram / Flowchart", q:"What is the key difference between a block diagram and a flowchart in a project report?",
+  keywords:["block diagram","components","flowchart","sequence","process"],
+  ref:"A block diagram shows major system components and their relationships, while a flowchart shows the step-by-step sequence of a process or algorithm."},
+ {topic:"Block Diagram / Flowchart", q:"Why are diagrams considered essential rather than optional in a technical report?",
+  keywords:["visual","clarity","communication","complex","understanding"],
+  ref:"Diagrams are essential because they communicate complex structures and processes visually, improving clarity and understanding beyond what text alone can convey."},
+ {topic:"Logical Design", q:"How should modularity be reflected in a logical design diagram?",
+  keywords:["modules","separation","interfaces","cohesion","coupling"],
+  ref:"Modularity should be reflected by clearly separated modules with well-defined interfaces, showing high cohesion within modules and low coupling between them."},
+];
+
+/* ============================= TEXT PROCESSING ============================= */
+const STOPWORDS = new Set(("a an the is are was were be been being of to in on for with and or "+
+ "that this these those it its as by at from into about over under between which who whom "
+ "what when where why how can could should would will shall not no do does did so such our "
+ "their your his her they we you i".split(" ")));
+
+function tokenize(text){
+  return (text||"").toLowerCase()
+    .replace(/[^a-z0-9\s]/g," ")
+    .split(/\s+/)
+    .filter(t=>t.length>2 && !STOPWORDS.has(t));
+}
+
+// Build IDF over the full reference-answer corpus once.
+const CORPUS_TOKENS = BANK.map(b=>tokenize(b.ref));
+const DF = {};
+CORPUS_TOKENS.forEach(tokens=>{
+  new Set(tokens).forEach(t=> DF[t]=(DF[t]||0)+1 );
+});
+const N_DOCS = CORPUS_TOKENS.length;
+function idf(term){ return Math.log(N_DOCS/(1+(DF[term]||0)))+1; }
+
+function tfidfVec(tokens){
+  const tf={};
+  tokens.forEach(t=> tf[t]=(tf[t]||0)+1 );
+  const vec={};
+  Object.keys(tf).forEach(t=> vec[t]=tf[t]*idf(t) );
+  return vec;
+}
+
+function cosine(vecA, vecB){
+  const keys = new Set([...Object.keys(vecA), ...Object.keys(vecB)]);
+  let dot=0, na=0, nb=0;
+  keys.forEach(k=>{
+    const a=vecA[k]||0, b=vecB[k]||0;
+    dot += a*b; na += a*a; nb += b*b;
+  });
+  if(na===0 || nb===0) return 0;
+  return dot/(Math.sqrt(na)*Math.sqrt(nb));
+}
+
+function semanticScore(answerText, refText){
+  const av = tfidfVec(tokenize(answerText));
+  const rv = tfidfVec(tokenize(refText));
+  return cosine(av, rv); // 0..1
+}
+
+function keywordScore(answerText, keywords){
+  const lower = (answerText||"").toLowerCase();
+  const hits = keywords.filter(k=> lower.includes(k.toLowerCase()) ).length;
+  return keywords.length ? hits/keywords.length : 0;
+}
+
+function gradeAnswer(answerText, question){
+  const sem = semanticScore(answerText, question.ref);
+  const kw  = keywordScore(answerText, question.keywords);
+  const hybrid = Math.min(1, 0.6*sem + 0.4*kw);
+  const marks = Math.round(hybrid*5*2)/2; // nearest 0.5, out of 5
+  return {sem, kw, marks};
+}
+
+/* ============================= SESSION SETUP ============================= */
+function pickSession(bank, count=5){
+  const idxs = bank.map((_,i)=>i);
+  for(let i=idxs.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [idxs[i],idxs[j]] = [idxs[j],idxs[i]];
+  }
+  return idxs.slice(0,count).sort((a,b)=>a-b).map(i=>bank[i]); // keep topic sequence
+}
+
+let session = [];
+let current = 0;
+let results = [];
+let student = {name:"", prn:""};
+let finalTranscript = "";
+let recognition = null;
+let listening = false;
+
+/* ============================= UI WIRING ============================= */
+const screenLogin = document.getElementById('screen-login');
+const screenQuiz  = document.getElementById('screen-quiz');
+const screenResult= document.getElementById('screen-result');
+
+document.getElementById('btn-start').addEventListener('click', ()=>{
+  const name = document.getElementById('in-name').value.trim();
+  const prn  = document.getElementById('in-prn').value.trim();
+  const err = document.getElementById('login-error');
+  if(!name || !prn){
+    err.textContent = "Please enter both name and PRN to begin.";
+    err.classList.remove('hidden');
+    return;
+  }
+  student = {name, prn};
+  session = pickSession(BANK, 5);
+  current = 0; results = [];
+  screenLogin.classList.add('hidden');
+  screenQuiz.classList.remove('hidden');
+  setupRecognition();
+  renderQuestion();
+});
+
+function renderProgress(){
+  document.getElementById('progress-label').textContent = `Question ${current+1} of ${session.length}`;
+  const pips = document.getElementById('progress-pips');
+  pips.innerHTML = "";
+  session.forEach((_,i)=>{
+    const span = document.createElement('span');
+    span.className = 'pip' + (i<current?' done':'') + (i===current?' current':'');
+    pips.appendChild(span);
+  });
+}
+
+function renderQuestion(){
+  const q = session[current];
+  document.getElementById('q-topic').textContent = q.topic;
+  document.getElementById('q-text').textContent = q.q;
+  const box = document.getElementById('transcript');
+  box.textContent = "Your spoken answer will appear here…";
+  box.classList.add('empty');
+  box.setAttribute('contenteditable','false');
+  finalTranscript = "";
+  document.getElementById('btn-next').disabled = true;
+  document.getElementById('mic-status').textContent = "Tap to record your answer";
+  document.getElementById('mic-status').classList.remove('live');
+  renderProgress();
+}
+
+/* ---- Speech recognition ---- */
+function setupRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById('btn-mic');
+  if(!SR){
+    document.getElementById('no-speech-note').classList.remove('hidden');
+    const box = document.getElementById('transcript');
+    box.setAttribute('contenteditable','true');
+    box.addEventListener('input', ()=>{
+      finalTranscript = box.innerText.trim();
+      box.classList.toggle('empty', finalTranscript.length===0);
+      document.getElementById('btn-next').disabled = finalTranscript.length===0;
+    });
+    micBtn.disabled = true;
+    micBtn.style.opacity = 0.35;
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'en-IN';           // Indian English accent
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (e)=>{
+    let interim = "", final = "";
+    for(let i=0;i<e.results.length;i++){
+      const t = e.results[i][0].transcript;
+      if(e.results[i].isFinal) final += t + " ";
+      else interim += t;
+    }
+    finalTranscript = (final || interim).trim();
+    const box = document.getElementById('transcript');
+    box.classList.remove('empty');
+    box.innerHTML = escapeHtml(finalTranscript) + '<span class="cursor"></span>';
+    document.getElementById('btn-next').disabled = finalTranscript.length===0;
+  };
+  recognition.onerror = (e)=>{
+    document.getElementById('mic-status').textContent = "Mic error: " + e.error + " — you can type instead.";
+    stopListening();
+    document.getElementById('transcript').setAttribute('contenteditable','true');
+  };
+  recognition.onend = ()=>{ if(listening) stopListening(); };
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function startListening(){
+  if(!recognition) return;
+  listening = true;
+  document.getElementById('btn-mic').classList.add('listening');
+  const status = document.getElementById('mic-status');
+  status.textContent = "Listening… tap again to stop";
+  status.classList.add('live');
+  try{ recognition.start(); }catch(e){ /* already started */ }
+}
+function stopListening(){
+  listening = false;
+  document.getElementById('btn-mic').classList.remove('listening');
+  const status = document.getElementById('mic-status');
+  status.classList.remove('live');
+  status.textContent = finalTranscript ? "Recording stopped — edit if needed" : "Tap to record your answer";
+  try{ recognition && recognition.stop(); }catch(e){}
+  const box = document.getElementById('transcript');
+  box.setAttribute('contenteditable','true');
+}
+
+document.getElementById('btn-mic').addEventListener('click', ()=>{
+  if(!recognition) return;
+  listening ? stopListening() : startListening();
+});
+
+document.getElementById('transcript').addEventListener('input', function(){
+  if(this.getAttribute('contenteditable')==='true'){
+    finalTranscript = this.innerText.trim();
+    this.classList.toggle('empty', finalTranscript.length===0);
+    document.getElementById('btn-next').disabled = finalTranscript.length===0;
+  }
+});
+
+/* ---- Next / grading ---- */
+document.getElementById('btn-next').addEventListener('click', ()=>{
+  if(listening) stopListening();
+  const q = session[current];
+  const g = gradeAnswer(finalTranscript, q);
+  results.push({topic:q.topic, question:q.q, answer:finalTranscript, ...g});
+  current++;
+  if(current >= session.length){
+    showResults();
+  } else {
+    renderQuestion();
+  }
+});
+
+/* ---- Results ---- */
+function showResults(){
+  screenQuiz.classList.add('hidden');
+  screenResult.classList.remove('hidden');
+  const total = results.reduce((s,r)=>s+r.marks,0);
+  document.getElementById('score-big').textContent = total.toFixed(1).replace(/\.0$/,'');
+  document.getElementById('res-name').textContent = student.name;
+  document.getElementById('res-prn').textContent = student.prn;
+
+  const pct = total/25*100;
+  let remark = "Needs revision of core concepts.";
+  if(pct>=85) remark = "Excellent command of the project fundamentals.";
+  else if(pct>=70) remark = "Good understanding, minor gaps.";
+  else if(pct>=50) remark = "Adequate, but several concepts need reinforcement.";
+  document.getElementById('score-remark').textContent = remark + ` (${pct.toFixed(0)}%)`;
+
+  const body = document.getElementById('breakdown-body');
+  body.innerHTML = "";
+  results.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${r.topic}</td>`+
+      `<td>${(r.sem*100).toFixed(0)}%</td>`+
+      `<td>${(r.kw*100).toFixed(0)}%</td>`+
+      `<td class="mark">${r.marks.toFixed(1)} / 5</td>`;
+    body.appendChild(tr);
+  });
+}
+</script>
+</body>
+</html>
