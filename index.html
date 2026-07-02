@@ -131,6 +131,7 @@ footer.note{ margin-top:22px; font-family:var(--mono); font-size:10.5px; color:v
     <div class="eyebrow">NBNSTIC · Department of Information Technology</div>
     <h1>CEP / Mini-Project Viva Voce</h1>
     <div class="sub">Designed by Prof. Rahul M. Samant | HOD-IT, NBNSTIC.</div>
+  </header>
 
   <!-- LOGIN -->
   <section id="screen-login">
@@ -144,7 +145,7 @@ footer.note{ margin-top:22px; font-family:var(--mono); font-size:10.5px; color:v
     </div>
     <div class="field">
       <label for="in-mic">Microphone Check</label>
-      <div style="font-size:13px;color:var(--muted)">Chrome or Edge recommended. You will be asked to grant microphone permission on the first question.</div>
+      <div style="font-size:13px;color:var(--muted)">Speech is captured via the browser's Web Speech API (Indian English, en-IN). Chrome or Edge recommended. You will be asked to grant microphone permission on the first question.</div>
     </div>
     <button class="btn" id="btn-start" style="width:100%">Begin Assessment</button>
     <div id="login-error" class="fallback-note hidden"></div>
@@ -277,9 +278,9 @@ const BANK = [
 
 /* ============================= TEXT PROCESSING ============================= */
 const STOPWORDS = new Set(("a an the is are was were be been being of to in on for with and or "+
- "that this these those it its as by at from into about over under between which who whom "
- "what when where why how can could should would will shall not no do does did so such our "
- "their your his her they we you i".split(" ")));
+ "that this these those it its as by at from into about over under between which who whom "+
+ "what when where why how can could should would will shall not no do does did so such our "+
+ "their your his her they we you i").split(" "));
 
 function tokenize(text){
   return (text||"").toLowerCase()
